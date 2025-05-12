@@ -1,9 +1,10 @@
 .background {
     position: relative;
-    background-image: url('../ImageJeepBicycle/GioiThieu/GioiThieu05.jpg');
+    background-image: url('../ImageJeepBicycle/bannner.jpg');
     background-attachment: fixed;
     background-repeat: no-repeat;
     background-size: contain;
+    background-position: top;
     z-index: 1;
 }
 

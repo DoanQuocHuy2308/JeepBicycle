@@ -49,7 +49,14 @@ export default function Page() {
 
     }
 
-
+    const doitien = (value) => {
+        const number = Number(value);
+        if (isNaN(number)) return "";
+        return number.toLocaleString("vi-VN", {
+            style: "currency",
+            currency: "VND",
+        });
+    };
     useEffect(() => {
         const fetchProducts = async () => {
             try {
@@ -139,15 +146,15 @@ export default function Page() {
                                 .filter(product => product.newprice < product.oldprice)
                                 .map(product => (
                                     <Link key={product.id} href={`/nguoidung/sanpham/${product.id}`}>
-                                        <div className="bg-white rounded-lg overflow-hidden shadow-lg relative max-h-[500px] transition-transform transform hover:scale-105 duration-300">
+                                        <div className="bg-white h-[400px] rounded-lg overflow-hidden shadow-lg relative max-h-[500px] transition-transform transform hover:scale-105 duration-300">
                                             <img src={`http://localhost:3000${product.image[0]}`} alt={product.name} className="w-full h-48 object-cover" />
                                             <div className="p-4 text-center">
                                                 <p className="text-gray-600">{product.nameCategory}</p>
                                                 <p className="text-green-600 font-semibold mt-2">Khuyến mãi</p>
                                                 <h2 className="text-lg font-bold mb-2">{product.name}</h2>
                                                 <div className="flex justify-center items-center space-x-4">
-                                                    <p className="text-red-400 font-medium text-lg mt-2 line-through opacity-70">{product.oldprice}</p>
-                                                    <p className="text-red-600 font-bold text-xl mt-2">{product.newprice}</p>
+                                                    <p className="text-red-400 font-medium text-lg mt-2 line-through opacity-70">{doitien(product.oldprice)}</p>
+                                                    <p className="text-red-600 font-bold text-xl mt-2">{doitien(product.newprice)}</p>
                                                 </div>
                                             </div>
                                             <div className="absolute top-0 left-0 p-2 bg-orange-500 text-white text-xs font-bold">

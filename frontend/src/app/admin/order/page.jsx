@@ -20,6 +20,7 @@ const inforOrder = {
     address: "",
     status: "",
     note: "",
+    subtotal: 0,
     total: 0,
     payment_method_id: null,
     image: [],
@@ -98,6 +99,14 @@ export default function OrderPage() {
         setUser({});
     };
 
+    const doitien = (value) => {
+        const number = Number(value);
+        if (isNaN(number)) return "";
+        return number.toLocaleString("vi-VN", {
+          style: "currency",
+          currency: "VND",
+        });
+      };
     const handleEdit = (rowData) => {
         const data = async () => {
             try {
@@ -187,48 +196,49 @@ export default function OrderPage() {
 
     const handleSendEmail = async (rowData) => {
         try {
-          const response = await axios.get(`http://localhost:3000/users/getUsersById`, {
-            params: {
-              id: rowData.user_id,
-            },
-            headers: {
-              Authorization: `Bearer ${token.token}`,
-            },
-          });
-          const userData = response.data;
-          if (!userData) {
-            toast.current.show({ severity: "error", summary: "Lỗi", detail: "Không tìm thấy thông tin người dùng", life: 3000 });
-            return;
-          }
-          const orders = await axios.get(`http://localhost:3000/orders/getOrdersById`, {
-            params: {
-              id: rowData.id,
-            },
-          });
-          orders.data.forEach((order) => {
-            try {
-              axios.post(`http://localhost:3000/orders/sendOrder`, {
-                email: userData.email,
-                phone: userData.phone,
-                name: userData.name,
-                orderId: order.id,
-                productName: order.nameProduct,
-                quantity: order.quantity,
-                price: order.subtotal,
-                total: order.total,
-                address: order.address,
-                date: order.updated_at,
-              });
-            } catch (error) {
-              console.error(error);
-              toast.current.show({ severity: "error", summary: "Lỗi", detail: "Có lỗi xảy ra khi gửi yêu cầu", life: 3000 });
+            const response = await axios.get(`http://localhost:3000/users/getUsersById`, {
+                params: {
+                    id: rowData.user_id,
+                },
+                headers: {
+                    Authorization: `Bearer ${token.token}`,
+                },
+            });
+            const userData = response.data;
+            if (!userData) {
+                toast.current.show({ severity: "error", summary: "Lỗi", detail: "Không tìm thấy thông tin người dùng", life: 3000 });
+                return;
             }
-          });
+            const orders = await axios.get(`http://localhost:3000/orders/getOrdersById`, {
+                params: {
+                    id: rowData.id,
+                },
+            });
+            orders.data.forEach((order) => {
+                try {
+                    axios.post(`http://localhost:3000/orders/sendOrder`, {
+                        email: userData.email,
+                        phone: userData.phone,
+                        name: userData.name,
+                        orderId: order.id,
+                        productName: order.nameProduct,
+                        quantity: order.quantity,
+                        price: doitien(order.subtotal),
+                        total: doitien(order.total),
+                        address: order.address,
+                        date: order.updated_at,
+                    });
+                } catch (error) {
+                    console.error(error);
+                    toast.current.show({ severity: "error", summary: "Lỗi", detail: "Có lỗi xảy ra khi gửi yêu cầu", life: 3000 });
+                }
+            });
         } catch (error) {
-          console.error(error);
-          toast.current.show({ severity: "error", summary: "Lỗi", detail: "Có lỗi xảy ra khi gửi yêu cầu", life: 3000 });
+            console.error(error);
+            toast.current.show({ severity: "error", summary: "Lỗi", detail: "Có lỗi xảy ra khi gửi yêu cầu", life: 3000 });
         }
-      };
+    };
+      
     return (
         <div className="p-4 w-full h-full relative">
             <Toast ref={toast} />
@@ -303,14 +313,26 @@ export default function OrderPage() {
                             className="w-full"
                         />
                         <div className="col-span-2">
-                        <FloatLabel>
-                            <InputText
-                                value={order.total || ""}
-                                disabled
-                                className="w-full text-end text-red-600 font-bold"
-                            />
-                            <label htmlFor="total">Tổng Tiền</label>
-                        </FloatLabel>
+                            <FloatLabel>
+                                <InputText
+                                    value={doitien(order?.subtotal)}
+                                    disabled
+                                    className="w-full text-end text-red-600 font-bold"
+                                    id="total"
+                                />
+                                <label htmlFor="total">Tổng tiền sản phẩm: </label>
+                            </FloatLabel>
+                        </div>
+
+                        <div className="col-span-2">
+                            <FloatLabel>
+                                <InputText
+                                    value={doitien(order?.total)}
+                                    disabled
+                                    className="w-full text-end text-red-600 font-bold"
+                                />
+                                <label htmlFor="total">Tổng phải trả: </label>
+                            </FloatLabel>
                         </div>
                         <div className="w-full grid grid-cols-1 md:grid-cols-2 mx-auto gap-4 col-span-2">
                             <Image id="IMG" src={`http://localhost:3000${order.image[0]}`} alt="Image" width="full" preview />
@@ -365,7 +387,7 @@ export default function OrderPage() {
                     <Column field="name" header="Họ Tên" style={{ width: "15%" }} />
                     <Column field="nameProduct" header="Sản Phẩm" style={{ width: "20%" }} />
                     <Column field="status" header="Trạng Thái" style={{ width: "10%" }} />
-                    <Column field="total" header="Tổng Tiền" style={{ width: "10%" }} />
+                    <Column body={(rowData) => doitien(rowData.subtotal)} header="Tổng Tiền" style={{ width: "10%" }} />
                     <Column
                         header="Chi Tiết"
                         body={(rowData) => (

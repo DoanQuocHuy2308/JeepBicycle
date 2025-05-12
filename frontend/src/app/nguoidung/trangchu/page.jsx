@@ -25,6 +25,7 @@ import banner6 from "@/ImageJeepBicycle/baner2.jpg";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faComment } from '@fortawesome/free-solid-svg-icons';
 import { Helmet } from "react-helmet";
+import { Rating } from "primereact/rating";
 import axios from "axios";
 export default function HomePage() {
   // -----------------banner----------------
@@ -52,28 +53,7 @@ export default function HomePage() {
       </div>
     );
   };
-  // -----------------comments-------------
-  const [comments, setcomments] = useState([]);
-  useEffect(() => {
-    const commentData = [
-      { content: "Các dòng xe đạp Jeep đều được thiết kế kiểu dáng rất thời trang. Không chỉ chinh phục được các quý ông đam mê bộ môn xe đạp mà xe đạp touring còn thu hút được sự chú ý của cả phái nữ vì sự đa dạng trong thiết kế và màu sắc.", name: "User 1", role: "Khách Hàng" },
-      { content: "Dòng xe đạp touring thành phố với thiết kế thiên về sự tối ưu tốc độ. Sử dụng loại lốp ít gai hơn xe đạp địa hình và được sử dụng phù hợp với nhu cầu di chuyển đường phố nhiều hơn..", name: "User 2", role: "Khách Hàng" },
-      { content: "Dòng xe đạp touring thành phố với thiết kế thiên về sự tối ưu tốc độ. Sử dụng loại lốp ít gai hơn xe đạp địa hình và được sử dụng phù hợp với nhu cầu di chuyển đường phố nhiều hơn..", name: "User 3", role: "Khách Hàng" },
-    ];
-    setcomments(commentData);
-  }, []);
-  const commentTemplate = (comment) => {
-    return (
-      <div className="items-center px-4 py-8 mt-10 rounded-4xl border-gray-400 shadow shadow-gray-500 border m-2 rounded-5xl hover:border-b-4 hover:border-b-orange-600">
-        <FontAwesomeIcon className="text-5xl p-5 text-orange-600" icon={faComment} />
-        <div>
-          <p className={styleTrangChu.contentcomment}>{comment.content}</p>
-          <p className={styleTrangChu.namecomment}>{comment.name}</p>
-          <span className={styleTrangChu.rolecomment}>{comment.role}</span>
-        </div>
-      </div>
-    );
-  }
+
   // ----------------images----------------
   const images = [
     { src: img1, title: "ADVENTURE", hover: img5 },
@@ -121,25 +101,62 @@ export default function HomePage() {
     }
     productData();
   }, []);
+  const doitien = (value) => {
+    const number = Number(value);
+    if (isNaN(number)) return "";
+    return number.toLocaleString("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    });
+  };
+
+  const [feedbacks, setFeedbacks] = useState([]);
+  useEffect(() => {
+    const feedbacksData = async () => {
+      try {
+        const response = await axios.get("http://localhost:3000/feedbacks/getAllFeedbacks");
+        setFeedbacks(response.data);
+      } catch (error) {
+        console.error("Error fetching feedbacks:", error);
+      }
+    }
+    feedbacksData();
+  }, []);
+  const commentTemplate = (comment) => {
+    return (
+      <div className="items-center px-4 py-8 mt-10 rounded-4xl border-gray-400 shadow shadow-gray-500 border m-2 rounded-5xl hover:border-b-4 hover:border-b-orange-600">
+        <FontAwesomeIcon className="text-5xl p-5 text-orange-600" icon={faComment} />
+        <div>
+          <div className="flex justify-center">
+            <Rating value={comment.star} readOnly onChange={(e) => setFeedbacks(e.value)} cancel={false} />
+          </div>
+          <p className={styleTrangChu.contentcomment}>{comment.content}</p>
+          <p className={styleTrangChu.namecomment}>{comment.user_name}</p>
+          <span className="text-gray-400">Khách Hàng</span>
+        </div>
+      </div>
+    );
+  }
   const productitem = (item) => {
     return (
-      <div className="flex justify-center px-2">
+      <div className="flex justify-center px-2 py-4">
         <Link href={`/nguoidung/sanpham/${item.id}`} key={item.id}>
-          <div className="w-[280px] h-full border border-gray-200 rounded-xl group text-center p-4 shadow-sm hover:shadow-lg transition-shadow duration-300">
-            <div className="flex justify-center items-center overflow-hidden w-full h-[200px] mb-5 bg-gray-50 rounded-lg">
+          <div className="w-[280px] h-[450px] border border-gray-200 rounded-2xl group text-center shadow-md hover:shadow-xl transition-all duration-300 bg-white hover:-translate-y-1">
+            <div className="relative w-full h-[280px] overflow-hidden rounded-t-2xl bg-gray-100">
               <img
                 src={`http://localhost:3000${item.image[0]}`}
                 alt={item.name}
-                className="object-contain max-h-[180px] transition-transform duration-300 transform group-hover:scale-110"
+                className="object-contain w-full h-full transition-transform duration-500 ease-in-out group-hover:scale-110"
               />
             </div>
-            <p className="font-semibold text-lg truncate">{item.name}</p>
-            <p className="text-orange-600 text-xl font-bold mt-2">
-              {item.newprice.toLocaleString()}₫
-            </p>
+            <div className="px-4 py-2">
+              <p className="font-semibold text-base text-gray-800 ">{item.name}</p>
+              <p className="text-orange-600 text-lg font-bold mt-2">{doitien(item.newprice)}</p>
+            </div>
           </div>
         </Link>
       </div>
+
     );
   };
 
@@ -252,12 +269,12 @@ export default function HomePage() {
             <Link
               href={`/nguoidung/sanpham?id=${item.id}`}
               key={index}
-              className="w-full h-auto rounded-lg text-center overflow-hidden group block"
+              className="w-full h-[400px] border border-gray-300 rounded-lg text-center overflow-hidden group block"
             >
               <div className="overflow-hidden rounded-md">
                 <img
                   src={`http://localhost:3000${item.image}`}
-                  className="w-full object-cover rounded-md transition-transform duration-300 ease-in-out group-hover:scale-110"
+                  className="w-full object-cover rounded-md h-[300px] transition-transform duration-300 ease-in-out group-hover:scale-110"
                   alt=""
                 />
               </div>
@@ -328,7 +345,7 @@ export default function HomePage() {
         <h2 className={styleTrangChu.titlecomment}>Khách hàng của chúng tôi nói gì</h2>
         <div className="relative">
           <Carousel
-            value={comments}
+            value={feedbacks}
             numVisible={2}
             numScroll={2}
             className="custom-carousel m-3"

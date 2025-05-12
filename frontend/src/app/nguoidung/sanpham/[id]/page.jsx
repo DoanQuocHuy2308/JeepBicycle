@@ -1,6 +1,6 @@
 "use client"
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import React, { useState, useEffect, useRef } from 'react';
 import { Galleria } from 'primereact/galleria';
@@ -18,6 +18,8 @@ import { Rating } from "primereact/rating";
 import { Button } from 'primereact/button';
 import { FileUpload } from 'primereact/fileupload';
 import { Image } from 'primereact/image';
+import { InputTextarea } from 'primereact/inputtextarea';
+
 export default function Page() {
     const id = useParams().id;
     const [product, setProduct] = useState([]);
@@ -28,7 +30,20 @@ export default function Page() {
     const [addFeedback, setAddFeedback] = useState(false);
     const [idCategory, setIdCategory] = useState("");
     const [idType, setIdType] = useState("");
-    const [feedback, setFeedback] = useState("");
+    const [dataFeedback, setDataFeedback] = useState([]);
+    const [btnEditFeedbacks, setBtnEditFeedbacks] = useState(false);
+    const [btnAddFeedbacks, setBtnAddFeedbacks] = useState(false);
+    const router = useRouter();
+    const [feedback, setFeedback] = useState([
+        {
+            id: 0,
+            user_id: 0,
+            product_id: 0,
+            star: 0,
+            image_path: "",
+            content: ""
+        }
+    ]);
     const [user, setUser] = useState("");
     const [cart, setCart] = useState(
         {
@@ -37,8 +52,6 @@ export default function Page() {
             newquantity: 0
         }
     );
-    // const [btnAddFeedback, setBtnAddFeedback] = useState("");
-
     useEffect(() => {
         const user = localStorage.getItem("data");
         if (user) {
@@ -119,7 +132,7 @@ export default function Page() {
                 const { data } = await axios.get(`http://localhost:3000/feedbacks/getFeedbacksByIdProduct`, {
                     params: { id: id }
                 });
-                setFeedback(data);
+                setDataFeedback(data);
             } catch (error) {
                 msgs.current.show([
                     {
@@ -144,6 +157,7 @@ export default function Page() {
                     life: 3000
                 }
             ]);
+            router.push('/loginFolder/login');
             return;
         }
         try {
@@ -204,7 +218,7 @@ export default function Page() {
         }
     ];
     const home = { icon: 'pi pi-home', url: 'http://localhost:4000/nguoidung/trangchu' };
-    ////////////////////////////////test/////////////////////////////
+
     const [ratingStats, setRatingStats] = useState([]);
     useEffect(() => {
         const fetchRatingStats = async () => {
@@ -222,30 +236,184 @@ export default function Page() {
 
     const totalFeedbacks = ratingStats.reduce((total, stat) => total + stat.quantity, 0);
     const averageStar = totalFeedbacks > 0
-    ? ratingStats.reduce((sum, stat) => sum + stat.star * stat.quantity, 0) / totalFeedbacks
-    : 0;
+        ? ratingStats.reduce((sum, stat) => sum + stat.star * stat.quantity, 0) / totalFeedbacks
+        : 0;
 
     // ------------IMG------------------
     const [previewUrl, setPreviewUrl] = useState(null);
-    const [img, setImg] = useState(null);
     const fileUploadRef = useRef(null);
     const onUpload = (e) => {
         const file = e.files[0];
         const url = URL.createObjectURL(file);
         setPreviewUrl(url);
-        setImg(file.name);
+        setFeedback({ ...feedback, image_path: file });
     };
     const removeImage = () => {
         setPreviewUrl(null);
+        setFeedback({ ...feedback, image_path: null });
         if (fileUploadRef.current) {
             fileUploadRef.current.clear();
         }
     };
-    const btnAddFeedback = () => {
-        console.log(img)
-        // console.log(value);
-    }
+    const btnAddFeedback = async () => {
+        if (!user) {
+            msgs.current?.show([
+                {
+                    severity: 'error',
+                    summary: 'Thoật báo',
+                    detail: "Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng",
+                    life: 3000
+                }
+            ]);
+            router.push('/loginFolder/login');
+        }
+        if (!feedback.star || !feedback.content) {
+            msgs.current?.show([
+                {
+                    severity: 'error',
+                    summary: 'Thông báo',
+                    detail: 'Vui lòng điền đầy đủ thông tin đánh giá.',
+                    life: 3000
+                }
+            ]);
+            return;
+        }
 
+        const formData = new FormData();
+        formData.append("user_id", user.user.id);
+        formData.append("product_id", id);
+        formData.append("star", feedback.star);
+        formData.append("content", feedback.content);
+        if (feedback.image_path) formData.append("file", feedback.image_path);
+
+        try {
+            await axios.post(`http://localhost:3000/feedbacks/createFeedbacks`, formData
+            );
+            msgs.current?.show([
+                {
+                    severity: 'success',
+                    summary: 'Thông báo',
+                    detail: 'Phản hồi của bạn đã được gửi thành công!',
+                    life: 3000
+                }
+            ]);
+            setFeedback({
+                image: null,
+                star: 0,
+                content: "",
+            });
+            setPreviewUrl(null);
+            window.location.reload();
+
+        } catch (error) {
+            console.error("Error sending feedback:", error.response.data);
+            msgs.current?.show([
+                {
+                    severity: 'error',
+                    summary: 'Thông báo',
+                    detail: error.response.data.message,
+                    life: 3000
+                }
+            ]);
+        }
+        console.log(img);
+    };
+    const doitien = (value) => {
+        const number = Number(value);
+        if (isNaN(number)) return "";
+        return number.toLocaleString("vi-VN", {
+            style: "currency",
+            currency: "VND",
+        });
+    };
+    const deleteFeedback = async (value) => {
+        try {
+            if (!window.confirm(`Bạn có chắc chắn muốn xóa bình luận này?`)) return;
+
+            const { data } = await axios.delete(`http://localhost:3000/feedbacks/deleteFeedbacks`, {
+                params: {
+                    id: value
+                }
+            });
+
+            msgs.current?.show([
+                {
+                    severity: 'success',
+                    summary: 'Thông báo',
+                    detail: `Xóa bình luận thành công!`,
+                    life: 3000
+                }
+            ]);
+            setDataFeedback(dataFeedback.filter((f) => f.id !== value));
+        } catch (err) {
+            msgs.current?.show([
+                {
+                    severity: 'error',
+                    summary: 'Lỗi',
+                    detail: err.response?.data?.message || 'Đã xảy ra lỗi khi xóa bình luận.',
+                    life: 3000
+                }
+            ]);
+        }
+    };
+    const handleAdd = () => {
+        setFeedback({
+            image: null,
+            star: 0,
+            content: "",
+        });
+        setAddFeedback(!addFeedback);
+        setBtnEditFeedbacks(false);
+        setBtnAddFeedbacks(true);
+    };
+    const handleEdit = (value) => {
+        setAddFeedback(!addFeedback);
+        setFeedback(value);
+        setPreviewUrl(value.image_path ? `http://localhost:3000${value.image_path}` : null);
+        setBtnEditFeedbacks(true);
+        setBtnAddFeedbacks(false);
+    };
+    const btnUpdateFeedback = () =>{
+        try{
+            const formData = new FormData();
+            formData.append("user_id", user.user.id);
+            formData.append("product_id", id);
+            formData.append("star", feedback.star);
+            formData.append("content", feedback.content);
+            if (feedback.image_path) formData.append("file", feedback.image_path);
+            axios.put(`http://localhost:3000/feedbacks/updateFeedbacks`, formData,
+                {
+                    params: { id: feedback.id }
+                },
+            );
+            msgs.current?.show([
+                {
+                    severity: 'success',
+                    summary: 'thông báo',
+                    detail: 'Phản hồi của bạn được cập nhật thành công!',
+                    life: 3000
+                }
+            ]);
+            setFeedback({
+                image: null,
+                star: 0,
+                content: "",
+            });
+            console.log(formData.image_path);
+            setPreviewUrl(null);
+            // window.location.reload();
+        }catch(error){
+            console.error("Error sending feedback:", error.response.data);
+            msgs.current?.show([
+                {
+                    severity: 'error',
+                    summary: 'thông báo',
+                    detail: error.response.data.message,
+                    life: 3000
+                }
+            ]);
+        }
+    }
     return (
         <div className="container mx-auto px-30 mt-10">
             <Toast ref={msgs} position="top-right" className="w-96" />
@@ -268,8 +436,8 @@ export default function Page() {
                     <div className="mx-2">
                         <h1 className="text-[27px] leading-[35px] font-bold">{product.name}</h1>
                         <div className="flex space-x-4">
-                            <p className="text-gray-500 font-normal text-[24px] leading-[24px] mt-4 line-through opacity-70">{product.oldprice}</p>
-                            <p className="text-black font-bold text-[24px] leading-[24px] mt-4">{product.newprice}</p>
+                            <p className="text-gray-500 font-normal text-[24px] leading-[24px] mt-4 line-through opacity-70">{doitien(product.oldprice)}</p>
+                            <p className="text-black font-bold text-[24px] leading-[24px] mt-4">{doitien(product.newprice)}</p>
                         </div>
                         <p className="text-gray-600 text-[18px] italic font-normal leading-[26px] mt-4">Đơn giá chưa bao gồm thuế GTGT, Phí vận chuyển</p>
                         <ul className="mt-4 space-y-1">
@@ -378,7 +546,7 @@ export default function Page() {
                     <div className="border-1 border-gray-300 rounded-lg p-4 bg-white">
                         <div className="grid grid-cols-6 gap-4 mb-5">
                             <div className="col-span-3 flex flex-col items-center justify-center">
-                                <div className="text-3xl font-bold">{parseFloat(averageStar)}/5</div>
+                                <div className="text-3xl font-bold">{parseFloat(averageStar.toFixed(1))}/5</div>
                                 <Rating value={parseFloat(averageStar)} readOnly cancel={false} className="text-yellow-500" />
                                 <div className="text-sm text-gray-500 mt-1">{totalFeedbacks} đánh giá và nhận xét</div>
                             </div>
@@ -405,7 +573,7 @@ export default function Page() {
                             label="Viết đánh giá"
                             icon="pi pi-pencil"
                             className="p-button-outlined p-button-secondary mt-4"
-                            onClick={() => setAddFeedback(!addFeedback)}
+                            onClick={handleAdd}
                         />
                     </div>
 
@@ -414,12 +582,10 @@ export default function Page() {
                             <h3 className="text-xl font-semibold mb-4">Đánh giá sản phẩm</h3>
                             <div className="mb-4">
                                 <label htmlFor="rating" className="block mb-2 font-medium">Chọn số sao:</label>
-                                <Rating value={""} cancel={true} />
+                                <Rating value={feedback.star} onChange={(e) => setFeedback({ ...feedback, star: e.value })} cancel={true} />
                             </div>
                             <div className="mb-4">
-                                <label htmlFor="image" className="block mb-2 text-gray-700 font-medium">
-                                    Tải ảnh đính kèm (nếu có):
-                                </label>
+                                <h4 className="text-lg font-medium mb-2">Tải ảnh đính kèm (nếu có):</h4>
                                 <div className="flex items-start space-x-4">
                                     <FileUpload
                                         ref={fileUploadRef}
@@ -433,7 +599,6 @@ export default function Page() {
                                         chooseLabel="Chọn ảnh"
                                         className="p-button-sm border border-gray-300 rounded-lg shadow-sm hover:shadow-md transition duration-300"
                                     />
-
                                     {previewUrl && (
                                         <div className="relative">
                                             <img
@@ -455,38 +620,58 @@ export default function Page() {
                             </div>
                             <div className="mb-4">
                                 <label htmlFor="feedback" className="block mb-2 font-medium">Nội dung đánh giá:</label>
-                                <textarea
-                                    rows={4}
-                                    className="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Viết đánh giá..."
-                                    onChange={(e) => setAddFeedback(e.target.value)}
-                                ></textarea>
+                                <InputTextarea
+                                    value={feedback.content}
+                                    className='w-full'
+                                    onChange={(e) => setFeedback({ ...feedback, content: e.target.value })}
+                                />
                             </div>
-
-                            <Button
-                                label="Gửi đánh giá"
-                                icon="pi pi-send"
-                                className="p-button-success"
-                                onClick={btnAddFeedback}
-                            />
+                            {btnEditFeedbacks && (
+                                <Button
+                                    label="Cập nhật"
+                                    icon="pi pi-pencil"
+                                    className="p-button-success"
+                                    onClick={btnUpdateFeedback}
+                                />
+                            )}
+                            {btnAddFeedbacks && (
+                                <Button
+                                    label="Gửi đánh giá"
+                                    icon="pi pi-send"
+                                    className="p-button-success"
+                                    onClick={btnAddFeedback}
+                                />
+                            )}
                         </div>
                     )}
                 </div>
                 <div className="border-b border-l h-[900px] overflow-y-auto border-gray-300 border-r rounded-b-md shadow-md p-6 bg-white">
-                    {feedback && feedback.length > 0 ? (
-                        feedback.map((item, index) => (
+                    {dataFeedback && dataFeedback.length > 0 ? (
+                        dataFeedback.map((item, index) => (
                             <div key={index} className="border-1 border-gray-300 rounded-lg p-4 bg-white mb-5">
-                                <div className="flex items-center space-x-4">
-                                    <img src={`http://localhost:3000${item.image_user}`} className="w-16 h-16 border-1 border-gray-300 rounded-full" alt="logo" />
-                                    <div className="space-x-4 flex items-center">
-                                        <h3 className="text-lg font-semibold">{item.user_name}</h3>
-                                        <Rating value={item.star} readOnly cancel={false} className="text-yellow-500" />
+                                <div className="flex justify-between items-center">
+                                    <div className="">
+                                        <div className="flex items-center space-x-4">
+                                            <img src={`http://localhost:3000${item.image_user}`} className="w-16 h-16 border-1 border-gray-300 rounded-full" alt="logo" />
+                                            <div className="space-x-4 flex items-center">
+                                                <h3 className="text-lg font-semibold">{item.user_name}</h3>
+                                                <Rating value={item.star} readOnly cancel={false} className="text-yellow-500" />
+                                            </div>
+                                        </div>
+                                        <p className="text-black my-2">{item.content}</p>
+                                        {item.image_path && (
+                                            <Image src={`http://localhost:3000${item.image_path}`} alt="Image" width="250" preview />
+                                        )}
                                     </div>
+                                    {item.user_id === user?.user.id ? (
+                                        <div className="flex gap-3">
+                                            <Button icon="pi pi-pencil" rounded text raised onClick={() => handleEdit(item)} severity="success" aria-label="Edit" />
+                                            <Button icon="pi pi-times" rounded text raised onClick={() => deleteFeedback(item.id)} severity="danger" aria-label="Delete" />
+                                        </div>
+                                    ) : (
+                                        <></>
+                                    )}
                                 </div>
-                                <p className="text-black my-2">{item.content}</p>
-                                {item.image_path && (
-                                    <Image src={`http://localhost:3000${item.image_path}`} alt="Image" width="250" preview />
-                                )}
                             </div>
                         ))
                     ) : (
@@ -500,7 +685,7 @@ export default function Page() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 mb-5 lg:grid-cols-3 gap-6">
                     {products.map((product) => (
                         <Link key={product.id} href={`/nguoidung/sanpham/${product.id}`}>
-                            <div className="bg-white rounded-lg overflow-hidden shadow-lg relative max-h-[500px] transition-transform transform hover:scale-105 duration-300">
+                            <div className="bg-white rounded-lg overflow-hidden shadow-lg relative h-[400px] transition-transform transform hover:scale-105 duration-300">
                                 <img src={`http://localhost:3000${product.image[0]}`} alt={product.name} className="w-full h-48 object-cover" />
                                 <div className="p-4 text-center">
                                     <p className="text-gray-600">{product.nameCategory}</p>
@@ -509,8 +694,8 @@ export default function Page() {
                                     )}
                                     <h2 className="text-lg font-bold mb-2">{product.name}</h2>
                                     <div className="flex justify-center items-center space-x-4">
-                                        <p className="text-red-400 font-medium text-lg mt-2 line-through opacity-70">{product.oldprice}</p>
-                                        <p className="text-red-600 font-bold text-xl mt-2">{product.newprice}</p>
+                                        <p className="text-red-400 font-medium text-lg mt-2 line-through opacity-70">{doitien(product.oldprice)}</p>
+                                        <p className="text-red-600 font-bold text-xl mt-2">{doitien(product.newprice)}</p>
                                     </div>
                                 </div>
                                 <div className="absolute top-0 left-0 p-2 bg-orange-500 text-white text-xs font-bold">

@@ -40,6 +40,7 @@ export default function Navbar() {
             }
         }
     }, []);
+
     useEffect(() => {
         const fetchCategory = async () => {
             try {
@@ -170,22 +171,53 @@ export default function Navbar() {
                         </div>
                     </li>
                     <li className="text-3xl">|</li>
-                    <li id="login">
+                    <li id="login" className="relative">
                         {!data ? (
-                            <Link href="/loginFolder" className={styleNavbar.text}>Đăng Nhập</Link>
-                        ) : (<div className="relative text-center w-auto">
-                            <button onClick={() => sethideInfo(!hideInfo)} className="w-15 h-15 rounded-full border-2 overflow-hidden border-black flex items-center justify-center">
-                                <img src={data.user.image !== null ? `http://localhost:3000${data.user.image}` : imgDefault} className="h-full w-full" alt="Language Icon" />
-                            </button>
-                            {hideInfo ? null : (
-                                <div id="info" className="absolute right-0 z-10 shadow-lg shadow-black bg-white border-1 border-gray-400 overflow-hidden none rounded-md w-52">
-                                    <Link href="/nguoidung/trangchu" className="block hover:bg-orange-600 border-b-2 hover:text-white p-2">Quản Lý Tài Khoản</Link>
-                                    <Link href="/nguoidung/donhang" className="block hover:bg-orange-600 border-b-2 hover:text-white p-2">Quản Lý Đơn Hàng</Link>
-                                    <button onClick={dangxuat} className="w-full hover:bg-orange-600 hover:text-white p-2">Đăng Xuất</button>
-                                </div>
-                            )}
-                        </div>)}
+                            <Link href="/loginFolder" className={styleNavbar.text}>
+                                Đăng Nhập
+                            </Link>
+                        ) : (
+                            <div className="flex items-center gap-2 cursor-pointer" onClick={() => sethideInfo(!hideInfo)}>
+                                <img
+                                    src={data.user.image !== null ? `http://localhost:3000${data.user.image}` : imgDefault}
+                                    className="w-12 h-12 rounded-full border-2 border-black object-cover"
+                                    alt="User Avatar"
+                                />
+                                <svg
+                                    className={`w-4 h-4 transition-transform ${hideInfo ? '' : 'rotate-180'}`}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+
+                                {!hideInfo && (
+                                    <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-gray-300 rounded-md shadow-lg z-50">
+                                        <Link
+                                            href="/nguoidung/trangchu"
+                                            className="block px-4 py-2 hover:bg-orange-600 hover:text-white border-b"
+                                        >
+                                            Quản Lý Tài Khoản
+                                        </Link>
+                                        <Link
+                                            href="/nguoidung/donhang"
+                                            className="block px-4 py-2 hover:bg-orange-600 hover:text-white border-b"
+                                        >
+                                            Quản Lý Đơn Hàng
+                                        </Link>
+                                        <button
+                                            onClick={dangxuat}
+                                            className="w-full text-left px-4 py-2 hover:bg-orange-600 hover:text-white"
+                                        >
+                                            Đăng Xuất
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </li>
+
                 </ul>
             </nav>
             {/* -------------------giỏ hàng ---------------- */}
@@ -241,13 +273,13 @@ export default function Navbar() {
                                                             <span className="italic font-normal text-sm text-gray-500">({item.color})</span>
                                                         </h3>
                                                         <p className="text-sm text-gray-600 mb-1">
-                                                            Giá sản phẩm: <span className="font-semibold text-black">{item.newprice}đ</span>
+                                                            Giá sản phẩm: <span className="font-semibold text-black">{Number(item.newprice).toLocaleString("vi-VN")} đ</span>
                                                         </p>
                                                         <p className="text-sm text-gray-600 mb-1">
                                                             Số lượng: <span className="font-semibold text-black">{item.quantity}</span>
                                                         </p>
                                                         <p className="text-sm text-gray-700 font-semibold">
-                                                            Tổng tiền: <span className="text-orange-600">{item.subtotal}đ</span>
+                                                            Tổng tiền: <span className="text-orange-600">{Number(item.subtotal).toLocaleString("vi-VN")} đ</span>
                                                         </p>
                                                     </div>
 
